@@ -6,7 +6,6 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.projectdynasty.config.JsonConfig;
-import com.projectdynasty.security.PasswordEncoder;
 import com.projectdynasty.security.jwt.JwtUtils;
 import de.alexanderwodarz.code.FileCore;
 import de.alexanderwodarz.code.JavaCore;
@@ -33,7 +32,6 @@ public class AuthService {
     public static Database DATABASE;
     public static final JWTVerifier VERIFIER = JWT.require(Algorithm.HMAC256(CONFIG.get("jwt", Jwt.class).getKey())).withIssuer(CONFIG.get("jwt", Jwt.class).getIss()).build();
     public static final JwtUtils JWT_UTILS = new JwtUtils();
-    public static final PasswordEncoder PASSWORD_ENCODER = new PasswordEncoder();
 
     public static void main(String[] args) throws Exception {
         JavaCore.initLog();

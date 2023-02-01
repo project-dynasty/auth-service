@@ -11,31 +11,31 @@ import lombok.Getter;
 public class GroupData extends AbstractTable {
 
     @Column(name = "group_id")
-    private long groupId;
+    public long groupId;
 
     @Column(name = "group_name")
-    private String name;
+    public String name;
 
     @Column(name = "display_name")
-    private String displayName;
+    public String displayName;
 
     @Column(name = "department")
-    private String department;
+    public String department;
 
     @Column(name = "discord_permission_group_id")
-    private Long discordPermissionGroupId;
+    public Long discordPermissionGroupId;
 
     @Column(name = "team")
-    private String team;
+    public String team;
 
     @Column(name = "icon")
-    private String icon;
+    public String icon;
 
     @Column(name = "type")
-    private int type;
+    public int type;
 
     @Column(name = "sort_id")
-    private Integer sortId;
+    public Integer sortId;
 
     public GroupData(Database database) {
         super(database);

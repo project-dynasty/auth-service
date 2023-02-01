@@ -11,19 +11,19 @@ import lombok.Getter;
 public class PermissionData extends AbstractTable {
 
     @Column(name = "user_id")
-    private long userId;
+    public long userId;
 
     @Column(name = "permission_id")
-    private long permissionId;
+    public long permissionId;
 
     @Column(name = "permission")
-    private String permission;
+    public String permission;
 
     @Column(name = "negate")
-    private boolean negate;
+    public boolean negate;
 
     @Column(name = "value")
-    private int value;
+    public int value;
 
     public PermissionData(Database database) {
         super(database);

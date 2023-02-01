@@ -4,15 +4,15 @@ import com.google.gson.Gson;
 import com.projectdynasty.AuthService;
 import com.projectdynasty.models.AccountData;
 import com.projectdynasty.models.permission.GroupData;
+import com.projectdynasty.models.permission.GroupPermission;
 import com.projectdynasty.models.permission.PermissionData;
+import com.projectdynasty.models.permission.UserGroupJoin;
 import com.projectdynasty.payload.response.user.permission.PermissionResponse;
 import de.alexanderwodarz.code.web.rest.authentication.Authentication;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Getter
@@ -27,14 +27,27 @@ public class UserDetailsImpl extends Authentication {
 
     private Set<PermissionData> permissions;
     private Set<GroupData> roles;
+    private Map<Long, Set<GroupPermission>> groupPermissions;
 
     public static UserDetailsImpl build(AccountData accountData) {
+
         List<PermissionData> userPermissions = AuthService.DATABASE.getTable(PermissionData.class).query().addParameter("user_id", accountData.userId).executeMany();
-        System.out.println(userPermissions);
-        for (PermissionData userPermission : userPermissions) {
-            System.out.println(userPermission.getPermission());
+        List<UserGroupJoin> userGroupJoins = AuthService.DATABASE.getTable(UserGroupJoin.class).query().addParameter("user_id", accountData.userId).executeMany();
+        List<GroupData> userGroups = new ArrayList<>();
+
+        for (UserGroupJoin userGroupJoin : userGroupJoins) {
+            GroupData groupData = (GroupData) AuthService.DATABASE.getTable(GroupData.class).query().addParameter("group_id", userGroupJoin.groupId).executeOne();
+            if (groupData != null)
+                userGroups.add(groupData);
         }
-        Set<PermissionData> permissionData = new HashSet<>(userPermissions);
+
+        Map<Long, Set<GroupPermission>> longSetMap = new HashMap<>();
+        List<GroupPermission> groupPermissions = new ArrayList<>();
+        for (GroupData groupData : userGroups) {
+            groupPermissions.addAll(AuthService.DATABASE.getTable(GroupPermission.class).query().addParameter("group_id", groupData.groupId).executeMany());
+            longSetMap.put(groupData.groupId, new HashSet<>(groupPermissions));
+        }
+
         return new UserDetailsImpl(
                 accountData.userId,
                 accountData.username,
@@ -42,7 +55,8 @@ public class UserDetailsImpl extends Authentication {
                 accountData.lastName,
                 accountData.disabled,
                 new HashSet<>(userPermissions),
-                new HashSet<>()
+                new HashSet<>(userGroups),
+                longSetMap
         );
     }
 
@@ -51,6 +65,6 @@ public class UserDetailsImpl extends Authentication {
     }
 
     public List<PermissionResponse> toGroupPermissionResponse(GroupData groupData) {
-        return permissions.stream().map(permission -> new PermissionResponse(permission.getPermission(), permission.isNegate(), permission.getValue())).collect(Collectors.toList());
+        return groupPermissions.get(groupData.groupId).stream().map(permission -> new PermissionResponse(permission.getPermission(), permission.isNegate(), permission.getValue())).collect(Collectors.toList());
     }
 }

@@ -4,8 +4,10 @@ import de.alexanderwodarz.code.database.AbstractTable;
 import de.alexanderwodarz.code.database.Database;
 import de.alexanderwodarz.code.database.annotation.Column;
 import de.alexanderwodarz.code.database.annotation.Table;
+import lombok.Getter;
 
 @Table(name = "account_data")
+@Getter
 public class TableAccount extends AbstractTable {
 
     @Column(name = "user_id")

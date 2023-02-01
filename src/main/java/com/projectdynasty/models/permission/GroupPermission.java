@@ -4,24 +4,26 @@ import de.alexanderwodarz.code.database.AbstractTable;
 import de.alexanderwodarz.code.database.Database;
 import de.alexanderwodarz.code.database.annotation.Column;
 import de.alexanderwodarz.code.database.annotation.Table;
+import lombok.Getter;
 
 @Table(name = "group_permission")
+@Getter
 public class GroupPermission extends AbstractTable {
 
     @Column(name = "group_id")
-    private long groupId;
+    public long groupId;
 
     @Column(name = "permission_id")
-    private long permissionId;
+    public long permissionId;
 
     @Column(name = "permission")
-    private String permission;
+    public String permission;
 
     @Column(name = "negate")
-    private boolean negate;
+    public boolean negate;
 
     @Column(name = "value")
-    private int value;
+    public int value;
 
     public GroupPermission(Database database) {
         super(database);
