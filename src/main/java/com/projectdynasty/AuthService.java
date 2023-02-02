@@ -6,6 +6,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.projectdynasty.config.JsonConfig;
+import com.projectdynasty.security.TwoFactor;
 import com.projectdynasty.security.jwt.JwtUtils;
 import de.alexanderwodarz.code.FileCore;
 import de.alexanderwodarz.code.JavaCore;
@@ -21,6 +22,7 @@ import lombok.Setter;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.io.File;
+import java.util.List;
 
 @RestApplication
 public class AuthService {
@@ -31,7 +33,9 @@ public class AuthService {
 
     public static Database DATABASE;
     public static final JWTVerifier VERIFIER = JWT.require(Algorithm.HMAC256(CONFIG.get("jwt", Jwt.class).getKey())).withIssuer(CONFIG.get("jwt", Jwt.class).getIss()).build();
+    public static final JWTVerifier REFRESH_VERIFIER = JWT.require(Algorithm.HMAC256(CONFIG.get("jwt", Jwt.class).getRefreshKey())).withIssuer(CONFIG.get("jwt", Jwt.class).getIss()).build();
     public static final JwtUtils JWT_UTILS = new JwtUtils();
+    public static final TwoFactor TWO_FACTOR = new TwoFactor();
 
     public static void main(String[] args) throws Exception {
         JavaCore.initLog();
@@ -47,7 +51,11 @@ public class AuthService {
         map.put().setKey("port").setValue(6472).build();
 
         DatabaseConfig databaseConfig = CONFIG.get("db", DatabaseConfig.class);
-        DATABASE = new Database(databaseConfig.getHost(), databaseConfig.getUsername(), databaseConfig.getPassword(), databaseConfig.getDb());
+        DATABASE = new Database(databaseConfig.getHost(), databaseConfig.getUsername(), databaseConfig.getPassword(), databaseConfig.getDb(), false);
+        /*List<Testing> t = DATABASE.getTable(Testing.class).query().executeMany();
+        for (Testing testing : t) {
+            System.out.println(testing.groupId);
+        }*/
 
         WebCore.start(AuthService.class, map);
     }
@@ -61,7 +69,7 @@ public class AuthService {
     }
 
     private static void initSettings() {
-        Jwt jwt = new Jwt("TCP Rest API", JavaCore.getRandomString(128), 3600, 604800);
+        Jwt jwt = new Jwt("TCP Rest API", JavaCore.getRandomString(128), JavaCore.getRandomString(128), 3600, 604800);
 
         Ssl ssl = new Ssl();
         ssl.setType("pkcs12");
@@ -87,7 +95,7 @@ public class AuthService {
     @Setter
     @AllArgsConstructor
     public static class Jwt {
-        private String iss, key;
+        private String iss, key, refreshKey;
         private int expire, expireRefresh;
     }
 

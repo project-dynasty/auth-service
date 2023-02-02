@@ -6,15 +6,15 @@ import de.alexanderwodarz.code.database.annotation.Column;
 import de.alexanderwodarz.code.database.annotation.Table;
 import lombok.Getter;
 
-@Getter
 @Table(name = "permission_groups")
+@Getter
 public class GroupData extends AbstractTable {
 
     @Column(name = "group_id")
     public long groupId;
 
     @Column(name = "group_name")
-    public String name;
+    public String groupName;
 
     @Column(name = "display_name")
     public String displayName;
