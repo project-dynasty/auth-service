@@ -85,8 +85,9 @@ public class AuthorizationController {
 
     @RestRequest(path = "/otp", method = "POST")
     public static ResponseData authenticate(@RequestBody String twoFactor) {
-        System.out.println(twoFactor);
         TwoFARequest request = new Gson().fromJson(twoFactor, TwoFARequest.class);
+        if (request.getToken() == null)
+            return new ResponseData("{\"message\": \"Invalid token.\"}", StatusCode.UNAUTHORIZED);
         String subject = AuthService.JWT_UTILS.getSubject(request.getToken());
         if (subject == null) return new ResponseData("{}", StatusCode.UNAUTHORIZED);
 

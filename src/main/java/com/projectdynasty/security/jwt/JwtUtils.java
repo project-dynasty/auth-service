@@ -113,7 +113,7 @@ public class JwtUtils {
     public String getSubject(String token) {
         try {
             return AuthService.VERIFIER.verify(token).getSubject();
-        } catch (TokenExpiredException e) {
+        } catch (TokenExpiredException | SignatureVerificationException e) {
             return null;
         }
     }
@@ -121,7 +121,7 @@ public class JwtUtils {
     public String getRefreshSubject(String token) {
         try {
             return AuthService.REFRESH_VERIFIER.verify(token).getSubject();
-        } catch (TokenExpiredException e) {
+        } catch (TokenExpiredException | SignatureVerificationException e) {
             return null;
         }
     }
