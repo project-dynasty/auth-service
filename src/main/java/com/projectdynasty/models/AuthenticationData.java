@@ -12,7 +12,7 @@ import lombok.Getter;
 public class AuthenticationData extends AbstractTable {
 
     @Column(name = "user_id")
-    public Long id;
+    public long userId;
 
     @Column(name = "password")
     public String password;

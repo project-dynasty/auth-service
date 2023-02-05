@@ -12,6 +12,7 @@ import de.alexanderwodarz.code.web.StatusCode;
 import de.alexanderwodarz.code.web.rest.ResponseData;
 import de.alexanderwodarz.code.web.rest.annotation.*;
 import de.alexanderwodarz.code.web.rest.authentication.AuthenticationManager;
+import org.json.JSONObject;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.security.KeyStore;
@@ -26,14 +27,19 @@ public class AuthorizationController {
     private static final Map<Long, SigninRequest> signinRequests = new HashMap<>();
     private static final Map<String, AuthStatus> permitted = new HashMap<>();
 
+    // 5REULOJZNJN27PRR3XPIQ6CMUHJCB4RY
+
     @RestRequest(path = "/signin", method = "POST")
     public static ResponseData signin(@RequestBody String signin) {
         SigninRequest signinRequest = new Gson().fromJson(signin, SigninRequest.class);
+        if (signinRequest == null || signinRequest.getUsername() == null)
+            return new ResponseData("{}", StatusCode.BAD_REQUEST);
         AccountData accountData = (AccountData) AuthService.DATABASE.getTable(AccountData.class).query().addParameter("username", signinRequest.getUsername()).executeOne();
         if (accountData == null)
             return new ResponseData("{\"message\": \"Username of password do not match.\"}", StatusCode.UNAUTHORIZED);
 
         AuthenticationData authenticationData = (AuthenticationData) AuthService.DATABASE.getTable(AuthenticationData.class).query().addParameter("user_id", accountData.userId).executeOne();
+        System.out.println(authenticationData.getUserId());
         if (authenticationData.getPassword() == null)
             return new ResponseData("{\"message\": \"This user is not completely registered yet.\"}", StatusCode.UNAUTHORIZED);
         if (!BCrypt.checkpw(signinRequest.getPassword(), /*authenticationData.getPassword()*/password))
@@ -43,7 +49,7 @@ public class AuthorizationController {
         status.setRememberMe(signinRequest.isRememberMe());
         status.setMobile(signinRequest.getOsType() != null || signinRequest.getOsVersion() != null);
 
-        if (authenticationData.getAuthOtpMobileValue() != null) {
+        if (authenticationData.getAuthOtpMobileValue() != null && !authenticationData.getAuthOtpMobileValue().equals("")) {
             signinRequests.put(accountData.userId, signinRequest);
 
             String token = AuthService.JWT_UTILS.generateAuthToken(accountData.userId);
@@ -58,6 +64,7 @@ public class AuthorizationController {
                 deviceId = device.getId();
             }*/
 
+            status.setOtp(true);
             status.setStatus("wait");
             status.setToken(token);
             status.setMobileConfirm(new Random().nextInt(1000));
@@ -79,7 +86,6 @@ public class AuthorizationController {
             permitted.put(token, status);
             return new ResponseData("{\"token\": \"" + token + "\", \"mobile\": \"" + (sentCode ? status.getMobileConfirm() : 0) + "\"}", StatusCode.OK);
         }
-
         return getTokens(status, signinRequest.getUsername());
     }
 
@@ -88,6 +94,7 @@ public class AuthorizationController {
         TwoFARequest request = new Gson().fromJson(twoFactor, TwoFARequest.class);
         if (request.getToken() == null)
             return new ResponseData("{\"message\": \"Invalid token.\"}", StatusCode.UNAUTHORIZED);
+
         String subject = AuthService.JWT_UTILS.getSubject(request.getToken());
         if (subject == null) return new ResponseData("{}", StatusCode.UNAUTHORIZED);
 
@@ -110,9 +117,14 @@ public class AuthorizationController {
     }
 
     @RestRequest(path = "/status", method = "GET")
-    public static ResponseData getStatus(@RequestBody String token) {
+    public static ResponseData getStatus(@RequestBody String body) {
+        JSONObject object = new JSONObject(body);
+        if (!object.has("token")) return new ResponseData("{}", StatusCode.UNAUTHORIZED);
+
+        String token = object.getString("token");
         if (token == null) return new ResponseData("{}", StatusCode.UNAUTHORIZED);
         if (!permitted.containsKey(token)) return new ResponseData("{}", StatusCode.UNAUTHORIZED);
+
         AuthStatus status = permitted.get(token);
         switch (status.getStatus()) {
             case "ok": {
@@ -130,7 +142,7 @@ public class AuthorizationController {
         }
     }
 
-    @RestRequest(path = "/token", method = "POST")
+    @RestRequest(path = "/refresh", method = "POST")
     public static ResponseData token(@RequestBody String token) {
         if (token == null) return new ResponseData("{}", StatusCode.NOT_FOUND);
         if (!refreshTokens.contains(token)) return new ResponseData("{}", StatusCode.NOT_FOUND);
@@ -145,7 +157,7 @@ public class AuthorizationController {
         List<String> token = AuthService.JWT_UTILS.generateJwtToken(authentication, status);
         if (token.isEmpty()) return new ResponseData("{}", StatusCode.INTERNAL_SERVER_ERROR);
         refreshTokens.add(token.get(1));
-        return new ResponseData("{\"token\": \"" + token.get(0) + "\", \"refreshToken\": \"" + token.get(1) + "\"}", StatusCode.OK);
+        return new ResponseData("{\"token\": \"" + token.get(0) + "\", \"refreshToken\": \"" + token.get(1) + "\", \"id\": \"" + authentication.getId() + "\"}", StatusCode.OK);
     }
 
 }

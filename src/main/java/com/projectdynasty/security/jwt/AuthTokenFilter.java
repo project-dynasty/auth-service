@@ -10,13 +10,13 @@ import de.alexanderwodarz.code.web.rest.authentication.CorsResponse;
 public class AuthTokenFilter extends AuthenticationFilter {
 
     public static AuthenticationFilterResponse doFilter(RequestData request) {
-        if(request.getPath().startsWith("/auth")) return AuthenticationFilterResponse.OK();
+        if (request.getPath().startsWith("/auth") || request.getPath().startsWith("/twofa")) return AuthenticationFilterResponse.OK();
         try {
             String jwt = parseJwt(request.getAuthorization());
-            if(jwt != null && AuthService.JWT_UTILS.validateJwtToken(jwt)) {
+            if (jwt != null && AuthService.JWT_UTILS.validateJwtToken(jwt)) {
                 String username = AuthService.JWT_UTILS.getSubject(jwt);
                 TableAccount account = (TableAccount) AuthService.DATABASE.getTable(TableAccount.class).query().addParameter("username", username).executeOne();
-                if(account == null) {
+                if (account == null) {
                     return AuthenticationFilterResponse.UNAUTHORIZED();
                 }
                 return AuthenticationFilterResponse.OK();

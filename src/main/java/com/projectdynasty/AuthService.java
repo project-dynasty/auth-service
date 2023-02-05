@@ -22,6 +22,7 @@ import lombok.Setter;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.io.File;
+import java.text.DecimalFormat;
 import java.util.List;
 
 @RestApplication
@@ -38,12 +39,13 @@ public class AuthService {
     public static final TwoFactor TWO_FACTOR = new TwoFactor();
 
     public static void main(String[] args) throws Exception {
+        long time = System.currentTimeMillis();
         JavaCore.initLog();
         if (!new File("logs").exists())
             new File("logs").mkdirs();
         File f = new File("logs/" + System.currentTimeMillis() / 1000 + ".txt");
         f.createNewFile();
-        Log.print = s -> new FileCore().appendFile(f, s+"\n");
+        Log.print = s -> new FileCore().appendFile(f, s + "\n");
 
         loadSettings();
 
@@ -51,13 +53,10 @@ public class AuthService {
         map.put().setKey("port").setValue(6472).build();
 
         DatabaseConfig databaseConfig = CONFIG.get("db", DatabaseConfig.class);
-        DATABASE = new Database(databaseConfig.getHost(), databaseConfig.getUsername(), databaseConfig.getPassword(), databaseConfig.getDb(), false);
-        /*List<Testing> t = DATABASE.getTable(Testing.class).query().executeMany();
-        for (Testing testing : t) {
-            System.out.println(testing.groupId);
-        }*/
+        DATABASE = new Database(databaseConfig.getHost(), databaseConfig.getUsername(), databaseConfig.getPassword(), databaseConfig.getDb(), true);
 
         WebCore.start(AuthService.class, map);
+        Log.log("Started in " + (System.currentTimeMillis() - time) + "ms", Level.INFO);
     }
 
 
