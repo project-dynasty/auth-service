@@ -22,6 +22,8 @@ import lombok.Setter;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.util.List;
 
@@ -33,10 +35,10 @@ public class AuthService {
     public static final JsonConfig CONFIG = new JsonConfig(new File("config.json"));
 
     public static Database DATABASE;
-    public static final JWTVerifier VERIFIER = JWT.require(Algorithm.HMAC256(CONFIG.get("jwt", Jwt.class).getKey())).withIssuer(CONFIG.get("jwt", Jwt.class).getIss()).build();
-    public static final JWTVerifier REFRESH_VERIFIER = JWT.require(Algorithm.HMAC256(CONFIG.get("jwt", Jwt.class).getRefreshKey())).withIssuer(CONFIG.get("jwt", Jwt.class).getIss()).build();
-    public static final JwtUtils JWT_UTILS = new JwtUtils();
-    public static final TwoFactor TWO_FACTOR = new TwoFactor();
+    public static JWTVerifier VERIFIER;
+    public static JWTVerifier REFRESH_VERIFIER;
+    public static JwtUtils JWT_UTILS;
+    public static TwoFactor TWO_FACTOR;
 
     public static void main(String[] args) throws Exception {
         long time = System.currentTimeMillis();
@@ -49,11 +51,16 @@ public class AuthService {
 
         loadSettings();
 
+        VERIFIER = JWT.require(Algorithm.HMAC256(CONFIG.get("jwt", Jwt.class).getKey())).withIssuer(CONFIG.get("jwt", Jwt.class).getIss()).build();
+        REFRESH_VERIFIER = JWT.require(Algorithm.HMAC256(CONFIG.get("jwt", Jwt.class).getRefreshKey())).withIssuer(CONFIG.get("jwt", Jwt.class).getIss()).build();
+        JWT_UTILS = new JwtUtils();
+        TWO_FACTOR = new TwoFactor();
+
         VaribleMap map = new VaribleMap();
         map.put().setKey("port").setValue(6472).build();
 
         DatabaseConfig databaseConfig = CONFIG.get("db", DatabaseConfig.class);
-        DATABASE = new Database(databaseConfig.getHost(), databaseConfig.getUsername(), databaseConfig.getPassword(), databaseConfig.getDb(), true);
+        DATABASE = new Database(databaseConfig.getHost(), databaseConfig.getUsername(), databaseConfig.getPassword(), databaseConfig.getDb(), false);
 
         WebCore.start(AuthService.class, map);
         Log.log("Started in " + (System.currentTimeMillis() - time) + "ms", Level.INFO);

@@ -1,7 +1,7 @@
 package com.projectdynasty.security.jwt;
 
 import com.projectdynasty.AuthService;
-import com.projectdynasty.example.TableAccount;
+import com.projectdynasty.models.AccountData;
 import de.alexanderwodarz.code.web.rest.RequestData;
 import de.alexanderwodarz.code.web.rest.authentication.AuthenticationFilter;
 import de.alexanderwodarz.code.web.rest.authentication.AuthenticationFilterResponse;
@@ -15,7 +15,7 @@ public class AuthTokenFilter extends AuthenticationFilter {
             String jwt = parseJwt(request.getAuthorization());
             if (jwt != null && AuthService.JWT_UTILS.validateJwtToken(jwt)) {
                 String username = AuthService.JWT_UTILS.getSubject(jwt);
-                TableAccount account = (TableAccount) AuthService.DATABASE.getTable(TableAccount.class).query().addParameter("username", username).executeOne();
+                AccountData account = (AccountData) AuthService.DATABASE.getTable(AccountData.class).query().addParameter("username", username).executeOne();
                 if (account == null) {
                     return AuthenticationFilterResponse.UNAUTHORIZED();
                 }
@@ -29,7 +29,8 @@ public class AuthTokenFilter extends AuthenticationFilter {
 
     public static CorsResponse doCors(RequestData data) {
         CorsResponse response = new CorsResponse();
-        response.setOrigin(data.getHeader("origin"));
+        response.setCredentials(true);
+        response.setOrigin("https://tcp.project-dynasty.com");
         response.setHeaders("authorization, content-type");
         return response;
     }
