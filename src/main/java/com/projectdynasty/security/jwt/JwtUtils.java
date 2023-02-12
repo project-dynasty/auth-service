@@ -25,7 +25,7 @@ public class JwtUtils {
     private final int jwtExpirationMs = AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getExpire() * 1000;
     private final int jwtRememberMs = AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getExpireRefresh() * 1000;
 
-    public List<String> generateJwtToken(Authentication authentication, AuthStatus authStatus) {
+    public Token generateJwtToken(Authentication authentication, AuthStatus authStatus) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication;
 
         Date expire = new Date(System.currentTimeMillis() + jwtExpirationMs);
@@ -59,17 +59,21 @@ public class JwtUtils {
             }
         }
 
-        return Arrays.asList(JWT.create().withIssuer(AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getIss())
-                .withExpiresAt(expire)
-                .withSubject(userDetails.getUsername())
-                .withClaim("permissions", permissionMap)
-                .withClaim("mobile", authStatus.isMobile())
-                .withClaim("deviceId", authStatus.getDeviceId())
-                .withClaim("otp", authStatus.isOtp())
-                .withIssuedAt(new Date()).sign(algorithm), generateRefreshToken(userDetails.getUsername(), permissionMap, authStatus.isMobile(), authStatus.getDeviceId()));
+        return new Token(
+                JWT.create().withIssuer(AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getIss())
+                        .withExpiresAt(expire)
+                        .withSubject(userDetails.getUsername())
+                        .withClaim("permissions", permissionMap)
+                        .withClaim("mobile", authStatus.isMobile())
+                        .withClaim("deviceId", authStatus.getDeviceId())
+                        .withClaim("otp", authStatus.isOtp())
+                        .withClaim("id", userDetails.getId())
+                        .withIssuedAt(new Date()).sign(algorithm),
+                generateRefreshToken(userDetails.getUsername(), permissionMap, authStatus.isMobile(), authStatus.getDeviceId(), authStatus.isOtp())
+        );
     }
 
-    public String generateRefreshToken(String subject, List<Map<String, Object>> permissionMap, boolean mobile, long deviceId) {
+    public String generateRefreshToken(String subject, List<Map<String, Object>> permissionMap, boolean mobile, long deviceId, boolean otp) {
         Date expire = new Date(System.currentTimeMillis() + jwtRememberMs);
         Algorithm algorithm = Algorithm.HMAC256(refreshSecret);
 
@@ -79,27 +83,34 @@ public class JwtUtils {
                 .withClaim("permissions", permissionMap)
                 .withClaim("mobile", mobile)
                 .withClaim("deviceId", deviceId)
+                .withClaim("otp", otp)
+                .withClaim("refresh", true)
                 .withIssuedAt(new Date()).sign(algorithm);
 
     }
 
-    public String fromRefreshToken(String token) {
+    public Token fromRefreshToken(String token) {
         if (!validateJwtRefreshToken(token))
             return null;
         Date expire = new Date(System.currentTimeMillis() + jwtExpirationMs);
         Algorithm algorithm = Algorithm.HMAC256(secret);
+        // create timestamp
 
         String subject = getRefreshSubject(token);
         List<Map<String, Object>> permissionMap = getRefreshClaim(token, "permissions").asList((Class<Map<String, Object>>) (Class<?>) Map.class);
         boolean mobile = getRefreshClaim(token, "mobile").asBoolean();
-        String deviceId = getRefreshClaim(token, "deviceId").asString();
-        return JWT.create().withIssuer(AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getIss())
+        long deviceId = getRefreshClaim(token, "deviceId").asLong();
+        boolean otp = getRefreshClaim(token, "otp").asBoolean();
+
+        return new Token(JWT.create().withIssuer(AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getIss())
                 .withExpiresAt(expire)
                 .withSubject(subject)
                 .withClaim("permissions", permissionMap)
                 .withClaim("mobile", mobile)
                 .withClaim("deviceId", deviceId)
-                .withIssuedAt(new Date()).sign(algorithm);
+                .withClaim("otp", otp)
+                .withIssuedAt(new Date()).sign(algorithm),
+                generateRefreshToken(subject, permissionMap, mobile, deviceId, otp));
     }
 
     public String generateAuthToken(long userId) {
@@ -108,6 +119,7 @@ public class JwtUtils {
         return JWT.create().withIssuer(AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getIss())
                 .withExpiresAt(expire)
                 .withSubject(String.valueOf(userId))
+                .withClaim("otp", true)
                 .withIssuedAt(new Date()).sign(algorithm);
     }
 
@@ -130,7 +142,7 @@ public class JwtUtils {
     public boolean validateJwtToken(String authToken) {
         try {
             AuthService.VERIFIER.verify(authToken);
-            return true;
+            return getClaim(authToken, "refresh").isMissing();
         } catch (SignatureVerificationException | JWTDecodeException |
                  TokenExpiredException e) {
             Log.log(e.getMessage(), Level.ERROR);
