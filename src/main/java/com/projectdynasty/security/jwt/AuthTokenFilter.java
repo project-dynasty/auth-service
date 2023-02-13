@@ -30,7 +30,10 @@ public class AuthTokenFilter extends AuthenticationFilter {
     public static CorsResponse doCors(RequestData data) {
         CorsResponse response = new CorsResponse();
         response.setCredentials(true);
-        response.setOrigin("https://tcp.project-dynasty.com");
+        if(data.getHeader("origin").contains("capacitor"))
+            response.setOrigin("capacitor://localhost");
+        else
+            response.setOrigin("https://tcp.project-dynasty.com");
         response.setHeaders("authorization, content-type");
         return response;
     }
