@@ -49,7 +49,7 @@ public class AuthorizationController {
 
         AuthStatus status = new AuthStatus();
         status.setRememberMe(signinRequest.isRememberMe());
-        status.setMobile(signinRequest.getOsType() != null || signinRequest.getOsVersion() != null);
+        status.setMobile(signinRequest.getOsType() != null && signinRequest.getOsVersion() != null);
 
         signinRequests.put(accountData.userId, signinRequest);
         if (authenticationData.getAuthOtpMobileValue() != null && !authenticationData.getAuthOtpMobileValue().equals("")) {
