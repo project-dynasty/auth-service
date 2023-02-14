@@ -13,7 +13,8 @@ In this repository we keep the current state of development of our Authenticatio
 1. Clone the repository.
 2. Run `mvn clean install` to build the application.
 3. Start the application using `java -jar "file-name"`.
-4. The application will be available at `http://localhost:6472`.
+4. Configure the config.json and restart the program.
+5. The application will be available at `http://localhost:6472`.
 
 ## Usage
 
@@ -37,3 +38,6 @@ In this repository we keep the current state of development of our Authenticatio
 * `fix/*`: Bug fix Branch (e.g. `fix/hash-bug`, for bug fixes)
 * `feature/*`: Feature Update Branch (e.g. `feature/hash-update`, for large updates)
 * `dev/*`: Developer specific branch (e.g. `dev/nicokempe`, designed for small changes and only temporary)
+
+## Credits
+* [JSON Web Tokens](https://jwt.io/)
