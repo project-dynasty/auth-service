@@ -68,6 +68,7 @@ public class JwtUtils {
                         .withClaim("deviceId", authStatus.getDeviceId())
                         .withClaim("otp", authStatus.isOtp())
                         .withClaim("id", userDetails.getId())
+                        .withClaim("challenge", authStatus.isChallengeToken())
                         .withIssuedAt(new Date()).sign(algorithm),
                 generateRefreshToken(userDetails.getUsername(), permissionMap, authStatus.isMobile(), authStatus.getDeviceId(), authStatus.isOtp())
         );
