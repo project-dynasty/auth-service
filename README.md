@@ -1,5 +1,5 @@
-In this repository we keep the current state of development of our Authentication Service. The Authentication Service is a secure web application that provides users with two-factor authentication using Google Authenticator. The project is built using Java and Spring Boot framework. We have a heap of documentation available for the code in this repository. You may be interested in...
-* [Issues](https://github.com/project-dynasty/data-nexus/issues) if you want to request a feature or report a bug.
+In this repository we keep the current state of development of our Authentication Service. The Authentication Service is a secure web application that provides users with two-factor authentication using Google Authenticator. The project is built using Java 11 and the web core framework. We have a heap of documentation available for the code in this repository. You may be interested in...
+* [Issues](https://github.com/project-dynasty/auth-service/issues) if you want to request a feature or report a bug.
 * [Code of Conduct](https://github.com/project-dynasty/docs/blob/main/docs/code_of_conduct.md)
 * [Contributing Guidelines](https://github.com/project-dynasty/docs/blob/main/docs/contributing.md)
 
@@ -12,8 +12,8 @@ In this repository we keep the current state of development of our Authenticatio
 
 1. Clone the repository.
 2. Run `mvn clean install` to build the application.
-3. Start the application using `mvn spring-boot:run`.
-4. The application will be available at `http://localhost:8080`.
+3. Start the application using `java -jar "file-name"`.
+4. The application will be available at `http://localhost:6472`.
 
 ## Usage
 
