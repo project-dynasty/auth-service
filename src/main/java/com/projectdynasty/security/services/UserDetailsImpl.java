@@ -1,6 +1,5 @@
 package com.projectdynasty.security.services;
 
-import com.google.gson.Gson;
 import com.projectdynasty.AuthService;
 import com.projectdynasty.models.AccountData;
 import com.projectdynasty.models.permission.GroupData;
@@ -8,9 +7,11 @@ import com.projectdynasty.models.permission.GroupPermission;
 import com.projectdynasty.models.permission.PermissionData;
 import com.projectdynasty.models.permission.UserGroupJoin;
 import com.projectdynasty.payload.response.user.permission.PermissionResponse;
+import de.alexanderwodarz.code.rest.ClientThread;
 import de.alexanderwodarz.code.web.rest.authentication.Authentication;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.json.JSONObject;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,7 +25,6 @@ public class UserDetailsImpl extends Authentication {
     private String firstName;
     private String lastName;
     private boolean disabled;
-
     private Set<PermissionData> permissions;
     private Set<GroupData> roles;
     private Map<Long, Set<GroupPermission>> groupPermissions;
@@ -58,6 +58,16 @@ public class UserDetailsImpl extends Authentication {
                 new HashSet<>(userGroups),
                 longSetMap
         );
+    }
+
+    public String getAvatar() {
+        ClientThread clientThread = new ClientThread("https://tcp-api.project-dynasty.com/account?id=" + id, ClientThread.RequestMethod.GET);
+        clientThread.run();
+        while (clientThread.isAlive()) {
+        }
+        if (clientThread.getStatus() != 200)
+            return "";
+        return new JSONObject(clientThread.getResponse()).getJSONObject("account").getString("avatarBase64");
     }
 
     public List<PermissionResponse> toPermissionResponse() {

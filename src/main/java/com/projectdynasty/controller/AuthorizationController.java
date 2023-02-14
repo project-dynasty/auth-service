@@ -5,19 +5,22 @@ import com.projectdynasty.AuthService;
 import com.projectdynasty.models.AccountData;
 import com.projectdynasty.models.AuthenticationData;
 import com.projectdynasty.models.RefreshTokenData;
+import com.projectdynasty.payload.Challenge;
 import com.projectdynasty.payload.request.AuthStatus;
 import com.projectdynasty.payload.request.SigninRequest;
+import com.projectdynasty.payload.request.SolveChallengeRequest;
 import com.projectdynasty.payload.request.TwoFARequest;
 import com.projectdynasty.security.jwt.Token;
 import com.projectdynasty.security.services.UserDetailsImpl;
 import de.alexanderwodarz.code.web.StatusCode;
 import de.alexanderwodarz.code.web.rest.ResponseData;
-import de.alexanderwodarz.code.web.rest.annotation.*;
+import de.alexanderwodarz.code.web.rest.annotation.RequestBody;
+import de.alexanderwodarz.code.web.rest.annotation.RestController;
+import de.alexanderwodarz.code.web.rest.annotation.RestRequest;
 import de.alexanderwodarz.code.web.rest.authentication.AuthenticationManager;
 import org.json.JSONObject;
 import org.mindrot.jbcrypt.BCrypt;
 
-import java.security.KeyStore;
 import java.util.*;
 
 @RestController(path = "/auth", produces = "application/json")
@@ -31,6 +34,45 @@ public class AuthorizationController {
     private static final List<String> refreshToken = new ArrayList<>();
 
     // 5REULOJZNJN27PRR3XPIQ6CMUHJCB4RY
+
+    @RestRequest(path = "/challenge", method = "PUT")
+    public static ResponseData createChallenge() {
+        Challenge challenge = Challenge.create();
+        return new ResponseData(challenge.build().toString(), StatusCode.OK);
+    }
+
+    @RestRequest(path = "/challenge/claim", method = "POST")
+    public static ResponseData claimChallenge(@RequestBody String challengeSolve) {
+        if (AuthenticationManager.getAuthentication() == null)
+            return new ResponseData("{}", StatusCode.UNAUTHORIZED);
+        SolveChallengeRequest solveChallenge = new Gson().fromJson(challengeSolve, SolveChallengeRequest.class);
+        Challenge challenge = Challenge.getByChallenge(solveChallenge.getChallenge());
+        if (!challenge.isConnected())
+            return new ResponseData("{}", 425);
+        if (!challenge.getStatus().equals("new"))
+            return new ResponseData("{}", StatusCode.ALREADY_REPORTED);
+        UserDetailsImpl userDetails = (UserDetailsImpl) AuthenticationManager.getAuthentication();
+        challenge.getConnectedClient().send(new JSONObject().put("type", "claim").put("avatar", userDetails.getAvatar()).toString());
+        return new ResponseData("{}", StatusCode.OK);
+    }
+
+    @RestRequest(path = "/challenge/solve", method = "POST")
+    public static ResponseData solveChallenge(@RequestBody String challengeSolve) {
+        if (AuthenticationManager.getAuthentication() == null)
+            return new ResponseData("{}", StatusCode.UNAUTHORIZED);
+        SolveChallengeRequest solveChallenge = new Gson().fromJson(challengeSolve, SolveChallengeRequest.class);
+        Challenge challenge = Challenge.getByChallenge(solveChallenge.getChallenge());
+        if (!challenge.isConnected())
+            return new ResponseData("{}", 425);
+        UserDetailsImpl userDetails = (UserDetailsImpl) AuthenticationManager.getAuthentication();
+        AuthStatus status = new AuthStatus();
+        status.setChallengeToken(true);
+        status.setDeviceId(0);
+        challenge.setStatus("solved");
+        challenge.getConnectedClient().send(getTokens(status, userDetails.getUsername()).getBody());
+        challenge.getConnectedClient().getSocket().close();
+        return new ResponseData("{}", StatusCode.OK);
+    }
 
     @RestRequest(path = "/signin", method = "POST")
     public static ResponseData signin(@RequestBody String signin) {
