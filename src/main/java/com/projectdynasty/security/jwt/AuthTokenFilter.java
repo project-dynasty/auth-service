@@ -12,7 +12,7 @@ import de.alexanderwodarz.code.web.rest.authentication.CorsResponse;
 public class AuthTokenFilter extends AuthenticationFilter {
 
     public static AuthenticationFilterResponse doFilter(RequestData request) {
-        if ((request.getPath().startsWith("/auth") && !request.getPath().equals("/auth/challenge/solve") && !request.getPath().equals("/auth/challenge/claim")) || request.getPath().startsWith("/twofa"))
+        if ((request.getPath().startsWith("/auth") && !request.getPath().equals("/auth/challenge/solve") && !request.getPath().equals("/auth/challenge/claim") && !request.getPath().equals("/auth/challenge/unclaim")) || request.getPath().startsWith("/twofa"))
             return AuthenticationFilterResponse.OK();
         try {
             String jwt = parseJwt(request.getAuthorization());
@@ -34,10 +34,7 @@ public class AuthTokenFilter extends AuthenticationFilter {
     public static CorsResponse doCors(RequestData data) {
         CorsResponse response = new CorsResponse();
         response.setCredentials(true);
-        if (data.getHeader("host").contains("capacitor"))
-            response.setOrigin("capacitor://localhost");
-        else
-            response.setOrigin("https://tcp.project-dynasty.com");
+        response.setOrigin("*");
         response.setHeaders("authorization, content-type");
         return response;
     }
