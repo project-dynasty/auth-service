@@ -7,6 +7,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.projectdynasty.config.JsonConfig;
 import com.projectdynasty.models.ChallengeData;
+import com.projectdynasty.models.TokenData;
 import com.projectdynasty.security.TwoFactor;
 import com.projectdynasty.security.jwt.JwtUtils;
 import com.projectdynasty.socket.SocketServer;
@@ -64,6 +65,7 @@ public class AuthService {
         DatabaseConfig databaseConfig = CONFIG.get("db", DatabaseConfig.class);
         DATABASE = new Database(databaseConfig.getHost(), databaseConfig.getUsername(), databaseConfig.getPassword(), databaseConfig.getDb());
         DATABASE.getTable(ChallengeData.class).create();
+        DATABASE.getTable(TokenData.class).create();
 
         WebCore.start(AuthService.class, map);
         Log.log("Started in " + (System.currentTimeMillis() - time) + "ms", Level.INFO);
