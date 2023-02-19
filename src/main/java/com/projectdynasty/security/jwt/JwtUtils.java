@@ -8,7 +8,9 @@ import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.auth0.jwt.interfaces.Claim;
 import com.projectdynasty.AuthService;
 import com.projectdynasty.models.permission.GroupData;
+import com.projectdynasty.payload.Token;
 import com.projectdynasty.payload.request.AuthStatus;
+import com.projectdynasty.payload.response.TokenResponse;
 import com.projectdynasty.payload.response.user.permission.PermissionResponse;
 import com.projectdynasty.security.services.UserDetailsImpl;
 import de.alexanderwodarz.code.log.Level;
@@ -25,7 +27,7 @@ public class JwtUtils {
     private final int jwtExpirationMs = AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getExpire() * 1000;
     private final int jwtRememberMs = AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getExpireRefresh() * 1000;
 
-    public Token generateJwtToken(Authentication authentication, AuthStatus authStatus) {
+    public TokenResponse generateJwtToken(Authentication authentication, AuthStatus authStatus) {
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication;
 
         Date expire = new Date(System.currentTimeMillis() + jwtExpirationMs);
@@ -58,8 +60,9 @@ public class JwtUtils {
                 }
             }
         }
+        Token token = Token.create(userDetails.getId());
 
-        return new Token(
+        return new TokenResponse(
                 JWT.create().withIssuer(AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getIss())
                         .withExpiresAt(expire)
                         .withSubject(userDetails.getUsername())
@@ -90,7 +93,7 @@ public class JwtUtils {
 
     }
 
-    public Token fromRefreshToken(String token) {
+    public TokenResponse fromRefreshToken(String token) {
         if (!validateJwtRefreshToken(token))
             return null;
         Date expire = new Date(System.currentTimeMillis() + jwtExpirationMs);
@@ -103,7 +106,7 @@ public class JwtUtils {
         long deviceId = getRefreshClaim(token, "deviceId").asLong();
         boolean otp = getRefreshClaim(token, "otp").asBoolean();
 
-        return new Token(JWT.create().withIssuer(AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getIss())
+        return new TokenResponse(JWT.create().withIssuer(AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getIss())
                 .withExpiresAt(expire)
                 .withSubject(subject)
                 .withClaim("permissions", permissionMap)
