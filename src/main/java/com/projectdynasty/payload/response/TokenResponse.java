@@ -1,4 +1,4 @@
-package com.projectdynasty.security.jwt;
+package com.projectdynasty.payload.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -9,7 +9,7 @@ import lombok.Setter;
 @RequiredArgsConstructor
 @Setter
 @Getter
-public class Token {
+public class TokenResponse {
 
     private final String token;
     private final String refreshToken;
