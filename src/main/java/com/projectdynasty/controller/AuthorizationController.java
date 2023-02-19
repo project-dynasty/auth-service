@@ -10,7 +10,7 @@ import com.projectdynasty.payload.request.AuthStatus;
 import com.projectdynasty.payload.request.SigninRequest;
 import com.projectdynasty.payload.request.SolveChallengeRequest;
 import com.projectdynasty.payload.request.TwoFARequest;
-import com.projectdynasty.security.jwt.Token;
+import com.projectdynasty.payload.response.TokenResponse;
 import com.projectdynasty.security.services.UserDetailsImpl;
 import de.alexanderwodarz.code.web.StatusCode;
 import de.alexanderwodarz.code.web.rest.ResponseData;
@@ -47,12 +47,37 @@ public class AuthorizationController {
             return new ResponseData("{}", StatusCode.UNAUTHORIZED);
         SolveChallengeRequest solveChallenge = new Gson().fromJson(challengeSolve, SolveChallengeRequest.class);
         Challenge challenge = Challenge.getByChallenge(solveChallenge.getChallenge());
-        if (!challenge.isConnected())
-            return new ResponseData("{}", 425);
+        if (challenge == null)
+            return new ResponseData("{}", StatusCode.NOT_FOUND);
         if (!challenge.getStatus().equals("new"))
             return new ResponseData("{}", StatusCode.ALREADY_REPORTED);
+        if (!challenge.isConnected())
+            return new ResponseData("{}", 425);
         UserDetailsImpl userDetails = (UserDetailsImpl) AuthenticationManager.getAuthentication();
-        challenge.getConnectedClient().send(new JSONObject().put("type", "claim").put("avatar", userDetails.getAvatar()).toString());
+        challenge.setUserId(userDetails.getId());
+        challenge.setStatus("claim");
+        challenge.getConnectedClient().send(new JSONObject().put("name", userDetails.getUsername()).put("type", "claim").put("avatar", userDetails.getAvatar()).toString());
+        return new ResponseData("{}", StatusCode.OK);
+    }
+
+    @RestRequest(path = "/challenge/unclaim", method = "POST")
+    public static ResponseData unclaimChallenge(@RequestBody String challengeSolve) {
+        if (AuthenticationManager.getAuthentication() == null)
+            return new ResponseData("{}", StatusCode.UNAUTHORIZED);
+        SolveChallengeRequest solveChallenge = new Gson().fromJson(challengeSolve, SolveChallengeRequest.class);
+        Challenge challenge = Challenge.getByChallenge(solveChallenge.getChallenge());
+        if (challenge == null)
+            return new ResponseData("{}", StatusCode.NOT_FOUND);
+        UserDetailsImpl userDetails = (UserDetailsImpl) AuthenticationManager.getAuthentication();
+        if (challenge.getUserId() != userDetails.getId())
+            return new ResponseData("{}", StatusCode.UNAUTHORIZED);
+        if (!challenge.getStatus().equals("claim"))
+            return new ResponseData("{}", StatusCode.BAD_REQUEST);
+        if (!challenge.isConnected())
+            return new ResponseData("{}", 425);
+        challenge.setUserId(0);
+        challenge.setStatus("new");
+        challenge.getConnectedClient().send(new JSONObject().put("type", "unclaim").toString());
         return new ResponseData("{}", StatusCode.OK);
     }
 
@@ -62,6 +87,8 @@ public class AuthorizationController {
             return new ResponseData("{}", StatusCode.UNAUTHORIZED);
         SolveChallengeRequest solveChallenge = new Gson().fromJson(challengeSolve, SolveChallengeRequest.class);
         Challenge challenge = Challenge.getByChallenge(solveChallenge.getChallenge());
+        if (challenge == null || challenge.getStatus().equals("claimed"))
+            return new ResponseData("{}", StatusCode.BAD_REQUEST);
         if (!challenge.isConnected())
             return new ResponseData("{}", 425);
         UserDetailsImpl userDetails = (UserDetailsImpl) AuthenticationManager.getAuthentication();
@@ -69,7 +96,9 @@ public class AuthorizationController {
         status.setChallengeToken(true);
         status.setDeviceId(0);
         challenge.setStatus("solved");
-        challenge.getConnectedClient().send(getTokens(status, userDetails.getUsername()).getBody());
+        JSONObject tokens = new JSONObject(getTokens(status, userDetails.getUsername()).getBody());
+        tokens.put("type", "token");
+        challenge.getConnectedClient().send(tokens.toString());
         challenge.getConnectedClient().getSocket().close();
         return new ResponseData("{}", StatusCode.OK);
     }
@@ -217,7 +246,7 @@ public class AuthorizationController {
         }
         tokenData.delete();
 
-        Token newTokens = AuthService.JWT_UTILS.fromRefreshToken(token);
+        TokenResponse newTokens = AuthService.JWT_UTILS.fromRefreshToken(token);
         insert(newTokens.getRefreshToken());
 
         return new ResponseData(new Gson().toJson(newTokens), StatusCode.OK);
@@ -227,11 +256,11 @@ public class AuthorizationController {
         UserDetailsImpl authentication = UserDetailsImpl.build((AccountData) AuthService.DATABASE.getTable(AccountData.class).query().addParameter("username", username).executeOne());
         AuthenticationManager.setAuthentication(authentication);
 
-        Token token = AuthService.JWT_UTILS.generateJwtToken(authentication, status);
-        if (token == null) return new ResponseData("{}", StatusCode.INTERNAL_SERVER_ERROR);
-        insert(token.getRefreshToken());
-        token.setId(authentication.getId());
-        return new ResponseData(new Gson().toJson(token), StatusCode.OK);
+        TokenResponse tokenResponse = AuthService.JWT_UTILS.generateJwtToken(authentication, status);
+        if (tokenResponse == null) return new ResponseData("{}", StatusCode.INTERNAL_SERVER_ERROR);
+        insert(tokenResponse.getRefreshToken());
+        tokenResponse.setId(authentication.getId());
+        return new ResponseData(new Gson().toJson(tokenResponse), StatusCode.OK);
     }
 
     private static void insert(String token) {
