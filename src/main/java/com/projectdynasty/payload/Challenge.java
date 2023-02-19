@@ -39,7 +39,7 @@ public class Challenge {
         return AuthService.SOCKET.clients.get(getChallenge());
     }
 
-    public boolean isConnected(){
+    public boolean isConnected() {
         return AuthService.SOCKET.clients.containsKey(getChallenge());
     }
 
@@ -51,8 +51,9 @@ public class Challenge {
         return data.user_id;
     }
 
-    public String getSecret() {
-        return data.secret;
+    public void setUserId(long userId) {
+        AuthService.DATABASE.update("UPDATE challenge_data SET user_id='"+userId+"' WHERE id='" + getId() + "';", null);
+        data.user_id = userId;
     }
 
     public String getChallenge() {
@@ -70,13 +71,6 @@ public class Challenge {
         data.status = status;
     }
 
-    public void setUserId(long userId){
-        ChallengeData update = AuthService.DATABASE.getTable(ChallengeData.class);
-        update.user_id = userId;
-        data.update(update, data);
-        data.user_id = userId;
-    }
-
     public long getCreated() {
         return data.created;
     }
@@ -86,7 +80,6 @@ public class Challenge {
         obj.put("created", getCreated());
         obj.put("status", getStatus());
         obj.put("challenge", getChallenge());
-        obj.put("secret", getSecret());
         obj.put("userId", getUserId());
         obj.put("id", getId());
         return obj;
