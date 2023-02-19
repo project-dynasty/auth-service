@@ -14,9 +14,6 @@ public class ChallengeData extends AbstractTable {
     @Column
     public long user_id;
 
-    @Column(length = 32)
-    public String secret;
-
     @Column(length = 6)
     public String challenge;
 
