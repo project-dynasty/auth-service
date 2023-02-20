@@ -35,7 +35,7 @@ public class AuthTokenFilter extends AuthenticationFilter {
         CorsResponse response = new CorsResponse();
         response.setCredentials(true);
         response.setOrigin("*");
-        response.setHeaders("authorization, content-type");
+        response.setHeaders("authorization, content-type, token");
         return response;
     }
 
