@@ -1,11 +1,13 @@
 package com.projectdynasty.controller;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.gson.Gson;
 import com.projectdynasty.AuthService;
 import com.projectdynasty.models.AccountData;
 import com.projectdynasty.models.AuthenticationData;
 import com.projectdynasty.models.RefreshTokenData;
 import com.projectdynasty.payload.Challenge;
+import com.projectdynasty.payload.Token;
 import com.projectdynasty.payload.request.AuthStatus;
 import com.projectdynasty.payload.request.SigninRequest;
 import com.projectdynasty.payload.request.SolveChallengeRequest;
@@ -13,6 +15,7 @@ import com.projectdynasty.payload.request.TwoFARequest;
 import com.projectdynasty.payload.response.TokenResponse;
 import com.projectdynasty.security.services.UserDetailsImpl;
 import de.alexanderwodarz.code.web.StatusCode;
+import de.alexanderwodarz.code.web.rest.RequestData;
 import de.alexanderwodarz.code.web.rest.ResponseData;
 import de.alexanderwodarz.code.web.rest.annotation.RequestBody;
 import de.alexanderwodarz.code.web.rest.annotation.RestController;
@@ -234,22 +237,22 @@ public class AuthorizationController {
     }
 
     @RestRequest(path = "/refresh", method = "POST")
-    public static ResponseData token(@RequestBody String body) {
-        JSONObject object = new JSONObject(body);
-        if (!object.has("token")) return new ResponseData("{}", StatusCode.UNAUTHORIZED);
-        String token = object.getString("token");
-        RefreshTokenData tokenData = (RefreshTokenData) AuthService.DATABASE.getTable(RefreshTokenData.class).query().addParameter("token", token).executeOne();
-        if (tokenData == null) return new ResponseData("{}", StatusCode.NOT_FOUND);
-        if (!AuthService.JWT_UTILS.validateJwtRefreshToken(token)) {
-            tokenData.delete();
-            return new ResponseData("{}", StatusCode.NOT_FOUND);
+    public static ResponseData token(RequestData data) {
+        String token = data.getHeader("token");
+        if (token == null)
+            return new ResponseData("{}", StatusCode.UNAUTHORIZED);
+        try {
+            DecodedJWT jwt = AuthService.REFRESH_VERIFIER.verify(token);
+            String keyId = jwt.getKeyId();
+            Token tok = Token.get(keyId);
+            JSONObject result = new JSONObject();
+            result.put("token", tok.generateToken());
+            result.put("refreshToken", tok.generateRefreshToken());
+            result.put("id", tok.getUserId());
+            return new ResponseData(result.toString(), StatusCode.OK);
+        } catch (Exception e) {
+            return new ResponseData("{}", StatusCode.UNAUTHORIZED);
         }
-        tokenData.delete();
-
-        TokenResponse newTokens = AuthService.JWT_UTILS.fromRefreshToken(token);
-        insert(newTokens.getRefreshToken());
-
-        return new ResponseData(new Gson().toJson(newTokens), StatusCode.OK);
     }
 
     private static ResponseData getTokens(AuthStatus status, String username) {
