@@ -7,18 +7,17 @@ import com.auth0.jwt.exceptions.SignatureVerificationException;
 import com.auth0.jwt.exceptions.TokenExpiredException;
 import com.auth0.jwt.interfaces.Claim;
 import com.projectdynasty.AuthService;
-import com.projectdynasty.models.permission.GroupData;
 import com.projectdynasty.payload.Token;
 import com.projectdynasty.payload.request.AuthStatus;
 import com.projectdynasty.payload.response.TokenResponse;
-import com.projectdynasty.payload.response.user.permission.PermissionResponse;
 import com.projectdynasty.security.services.UserDetailsImpl;
 import de.alexanderwodarz.code.log.Level;
 import de.alexanderwodarz.code.log.Log;
 import de.alexanderwodarz.code.web.rest.authentication.Authentication;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 public class JwtUtils {
 
@@ -28,52 +27,10 @@ public class JwtUtils {
     private final int jwtRememberMs = AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getExpireRefresh() * 1000;
 
     public TokenResponse generateJwtToken(Authentication authentication, AuthStatus authStatus) {
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication;
-
-        Date expire = new Date(System.currentTimeMillis() + jwtExpirationMs);
-        Algorithm algorithm = Algorithm.HMAC256(secret);
-
-        List<PermissionResponse> permissions = new ArrayList<>();
-        for (GroupData groupData : userDetails.getRoles())
-            permissions.addAll(userDetails.toGroupPermissionResponse(groupData));
-        permissions.addAll(userDetails.toPermissionResponse());
-        List<Map<String, Object>> permissionMap = permissions.stream().map(permission -> new HashMap<String, Object>() {{
-            put("perm", permission.getPermission());
-            put("negate", permission.isNegate());
-            put("value", permission.getValue());
-        }}).collect(Collectors.toList());
-
-        if (permissions.stream().anyMatch(permissionResponse -> permissionResponse.getPermission().equals("*"))) {
-            permissionMap = new ArrayList<>();
-            permissionMap.add(new HashMap<>() {{
-                put("perm", "*");
-                put("negate", false);
-                put("value", 0);
-            }});
-            for (PermissionResponse permission : permissions) {
-                if (permission.isNegate()) {
-                    permissionMap.add(new HashMap<>() {{
-                        put("perm", permission.getPermission());
-                        put("negate", permission.isNegate());
-                        put("value", permission.getValue());
-                    }});
-                }
-            }
-        }
-        Token token = Token.create(userDetails.getId());
-
+        Token token = Token.create((UserDetailsImpl) authentication, authStatus);
         return new TokenResponse(
-                JWT.create().withIssuer(AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getIss())
-                        .withExpiresAt(expire)
-                        .withSubject(userDetails.getUsername())
-                        .withClaim("permissions", permissionMap)
-                        .withClaim("mobile", authStatus.isMobile())
-                        .withClaim("deviceId", authStatus.getDeviceId())
-                        .withClaim("otp", authStatus.isOtp())
-                        .withClaim("id", userDetails.getId())
-                        .withClaim("challenge", authStatus.isChallengeToken())
-                        .withIssuedAt(new Date()).sign(algorithm),
-                generateRefreshToken(userDetails.getUsername(), permissionMap, authStatus.isMobile(), authStatus.getDeviceId(), authStatus.isOtp())
+                token.generateToken(),
+                token.generateRefreshToken()
         );
     }
 
@@ -90,7 +47,6 @@ public class JwtUtils {
                 .withClaim("otp", otp)
                 .withClaim("refresh", true)
                 .withIssuedAt(new Date()).sign(algorithm);
-
     }
 
     public TokenResponse fromRefreshToken(String token) {
