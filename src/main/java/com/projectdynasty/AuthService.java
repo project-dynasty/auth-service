@@ -80,7 +80,7 @@ public class AuthService {
     }
 
     private static void initSettings() {
-        Jwt jwt = new Jwt("TCP Rest API", JavaCore.getRandomString(128), JavaCore.getRandomString(128), 3600, 604800);
+        Jwt jwt = new Jwt("TCP Rest API", JavaCore.getRandomString(128), JavaCore.getRandomString(128), 3600, 86400,604800);
 
         Ssl ssl = new Ssl();
         ssl.setType("pkcs12");
@@ -116,7 +116,7 @@ public class AuthService {
     @AllArgsConstructor
     public static class Jwt {
         private String iss, key, refreshKey;
-        private int expire, expireRefresh;
+        private int expire, expireRefresh, expireMobileRefresh;
     }
 
     @Getter
