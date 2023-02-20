@@ -19,6 +19,18 @@ public class TokenData extends AbstractTable {
     public long created;
 
     @Column
+    public boolean mobile;
+
+    @Column
+    public boolean challenge;
+
+    @Column
+    public boolean otp;
+
+    @Column
+    public long deviceId;
+
+    @Column
     public long last;
 
     @Column
