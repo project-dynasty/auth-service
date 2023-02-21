@@ -5,8 +5,8 @@ import com.google.gson.Gson;
 import com.projectdynasty.AuthService;
 import com.projectdynasty.models.AccountData;
 import com.projectdynasty.models.AuthenticationData;
-import com.projectdynasty.models.RefreshTokenData;
 import com.projectdynasty.payload.Challenge;
+import com.projectdynasty.payload.Device;
 import com.projectdynasty.payload.Token;
 import com.projectdynasty.payload.request.AuthStatus;
 import com.projectdynasty.payload.request.SigninRequest;
@@ -107,7 +107,7 @@ public class AuthorizationController {
     }
 
     @RestRequest(path = "/signin", method = "POST")
-    public static ResponseData signin(@RequestBody String signin) {
+    public static ResponseData signin(@RequestBody String signin, RequestData data) {
         SigninRequest signinRequest = new Gson().fromJson(signin, SigninRequest.class);
         if (signinRequest == null || signinRequest.getUsername() == null)
             return new ResponseData("{}", StatusCode.BAD_REQUEST);
@@ -123,7 +123,11 @@ public class AuthorizationController {
 
         AuthStatus status = new AuthStatus();
         status.setRememberMe(signinRequest.isRememberMe());
-        status.setMobile(signinRequest.getOsType() != null && signinRequest.getOsVersion() != null);
+        status.setMobile(signinRequest.getOsType() != null && signinRequest.getOsVersion() != null && signinRequest.getScreenSize() != null);
+        if (status.isMobile()) {
+            Device device = Device.create(data.getSocket().getInetAddress().getHostAddress(), signinRequest.getOsVersion(), signinRequest.getOsType(), signinRequest.getScreenSize(), accountData.userId);
+            status.setDeviceId(device.getId());
+        }
 
         signinRequests.put(accountData.userId, signinRequest);
         if (authenticationData.getAuthOtpMobileValue() != null && !authenticationData.getAuthOtpMobileValue().equals("")) {
@@ -261,15 +265,8 @@ public class AuthorizationController {
 
         TokenResponse tokenResponse = AuthService.JWT_UTILS.generateJwtToken(authentication, status);
         if (tokenResponse == null) return new ResponseData("{}", StatusCode.INTERNAL_SERVER_ERROR);
-        insert(tokenResponse.getRefreshToken());
         tokenResponse.setId(authentication.getId());
         return new ResponseData(new Gson().toJson(tokenResponse), StatusCode.OK);
-    }
-
-    private static void insert(String token) {
-        RefreshTokenData refreshTokenData = AuthService.DATABASE.getTable(RefreshTokenData.class);
-        refreshTokenData.token = token;
-        refreshTokenData.insert();
     }
 
     @RestRequest(path = "/password", method = "POST")
