@@ -8,6 +8,7 @@ import com.google.gson.GsonBuilder;
 import com.projectdynasty.config.JsonConfig;
 import com.projectdynasty.models.ChallengeData;
 import com.projectdynasty.models.TokenData;
+import com.projectdynasty.payload.Device;
 import com.projectdynasty.security.TwoFactor;
 import com.projectdynasty.security.jwt.JwtUtils;
 import com.projectdynasty.socket.SocketServer;
