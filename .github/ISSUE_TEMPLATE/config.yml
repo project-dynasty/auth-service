@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discord Community Support
+    url: https://discord.gg/Yn9Ws9w6d5
+    about: Please ask and answer questions on our Discord if you dont have software-specific questions.
+  - name: Development Team Mail
+    url: mailto:dev@project-dynasty.com
+    about: For really urgent questions to the development team, you can also email the entire team directly!
