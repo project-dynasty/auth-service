@@ -23,7 +23,7 @@
         <dependency>
             <groupId>de.alexanderwodarz.code</groupId>
             <artifactId>java-core-website</artifactId>
-            <version>1.2.5-SNAPSHOT</version>
+            <version>1.2.7</version>
         </dependency>
         <dependency>
             <groupId>de.alexanderwodarz.code</groupId>
