@@ -139,7 +139,10 @@ public class AuthorizationController {
             status.setFakeTwo(new Random().nextInt(1000));
             status.setId(accountData.userId);
             boolean sentCode = Device.getFromUser(accountData.userId).size() > 0;
-            PushNotification.trigger2fa(accountData.userId, token, status.getFakeOne() + "," + status.getMobileConfirm() + "," + status.getFakeTwo(), !obj.has("live") || !(obj.get("live") instanceof Boolean) || obj.getBoolean("live"));
+            if(!status.isMobile())
+                PushNotification.trigger2fa(accountData.userId, token, status.getFakeOne() + "," + status.getMobileConfirm() + "," + status.getFakeTwo(), !obj.has("live") || !(obj.get("live") instanceof Boolean) || obj.getBoolean("live"));
+            else
+                sentCode = false;
             permitted.put(token, status);
             return new ResponseData("{\"token\": \"" + token + "\", \"mobile\": \"" + (sentCode ? status.getMobileConfirm() : 0) + "\", \"username\": \"" + accountData.username + "\"}", StatusCode.OK);
         }
