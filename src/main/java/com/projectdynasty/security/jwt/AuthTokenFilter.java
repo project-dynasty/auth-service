@@ -9,10 +9,20 @@ import de.alexanderwodarz.code.web.rest.authentication.AuthenticationFilterRespo
 import de.alexanderwodarz.code.web.rest.authentication.AuthenticationManager;
 import de.alexanderwodarz.code.web.rest.authentication.CorsResponse;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class AuthTokenFilter extends AuthenticationFilter {
 
     public static AuthenticationFilterResponse doFilter(RequestData request) {
-        if ((request.getPath().startsWith("/auth") && !request.getPath().equals("/auth/challenge/solve") && !request.getPath().equals("/auth/challenge/claim") && !request.getPath().equals("/auth/challenge/unclaim")) || request.getPath().startsWith("/twofa"))
+        List<String> allowed = new ArrayList<>();
+        allowed.add("/signin");
+        allowed.add("/otp");
+        allowed.add("/status");
+        allowed.add("/otp");
+        allowed.add("/challenge");
+        allowed.add("/password");
+        if(allowed.contains(request.getPath()))
             return AuthenticationFilterResponse.OK();
         try {
             String jwt = parseJwt(request.getAuthorization());
@@ -39,7 +49,7 @@ public class AuthTokenFilter extends AuthenticationFilter {
         return response;
     }
 
-    private static String parseJwt(String header) {
+    public static String parseJwt(String header) {
         if (header != null && header.startsWith("Bearer ")) {
             return header.substring(7);
         }
