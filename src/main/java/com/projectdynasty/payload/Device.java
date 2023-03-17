@@ -12,7 +12,7 @@ public class Device {
 
     private final DeviceData data;
 
-    public static Device get(int id) {
+    public static Device get(long id) {
         DeviceData data = (DeviceData) AuthService.DATABASE.getTable(DeviceData.class).query().addParameter("device_id", id).executeOne();
         if (data == null)
             return null;
@@ -33,16 +33,17 @@ public class Device {
         insert.osType = type;
         insert.osVersion = version;
         insert.screenSize = size;
-        insert.userId = userID;
+        insert.user_id = userID;
+        insert.deviceToken = "";
         return get(insert.insert());
     }
 
     public long getId() {
-        return data.deviceId;
+        return data.device_id;
     }
 
     public long getUserID() {
-        return data.userId;
+        return data.user_id;
     }
 
     public String getToken() {
