@@ -9,7 +9,7 @@ import de.alexanderwodarz.code.database.annotation.Table;
 public class DeviceData extends AbstractTable {
 
     @Column(autoIncrement = true, primaryKey = true, name = "device_id")
-    public long deviceId;
+    public long device_id;
 
     @Column(length = 255, name = "device_token")
     public String deviceToken;
@@ -27,7 +27,7 @@ public class DeviceData extends AbstractTable {
     public String screenSize;
 
     @Column(name = "user_id")
-    public long userId;
+    public long user_id;
 
     public DeviceData(Database database) {
         super(database);
