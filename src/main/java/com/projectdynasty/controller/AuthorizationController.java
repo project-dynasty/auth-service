@@ -3,6 +3,7 @@ package com.projectdynasty.controller;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.google.gson.Gson;
 import com.projectdynasty.AuthService;
+import com.projectdynasty.PushNotification;
 import com.projectdynasty.models.AccountData;
 import com.projectdynasty.models.AuthenticationData;
 import com.projectdynasty.payload.Challenge;
@@ -17,16 +18,14 @@ import com.projectdynasty.security.services.UserDetailsImpl;
 import de.alexanderwodarz.code.web.StatusCode;
 import de.alexanderwodarz.code.web.rest.RequestData;
 import de.alexanderwodarz.code.web.rest.ResponseData;
-import de.alexanderwodarz.code.web.rest.annotation.RequestBody;
-import de.alexanderwodarz.code.web.rest.annotation.RestController;
-import de.alexanderwodarz.code.web.rest.annotation.RestRequest;
+import de.alexanderwodarz.code.web.rest.annotation.*;
 import de.alexanderwodarz.code.web.rest.authentication.AuthenticationManager;
 import org.json.JSONObject;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.*;
 
-@RestController(path = "/auth", produces = "application/json")
+@RestController(produces = "application/json")
 public class AuthorizationController {
 
     private static final String password = "$2a$10$EEIui2SVbvqRU.SaA8amheB72OlbH6dxTvMABPZPcjURzXIg2R0pC";
@@ -35,8 +34,6 @@ public class AuthorizationController {
     private static final Map<String, AuthStatus> permitted = new HashMap<>();
 
     private static final List<String> refreshToken = new ArrayList<>();
-
-    // 5REULOJZNJN27PRR3XPIQ6CMUHJCB4RY
 
     @RestRequest(path = "/challenge", method = "PUT")
     public static ResponseData createChallenge() {
@@ -106,11 +103,13 @@ public class AuthorizationController {
         return new ResponseData("{}", StatusCode.OK);
     }
 
+
     @RestRequest(path = "/signin", method = "POST")
     public static ResponseData signin(@RequestBody String signin, RequestData data) {
         SigninRequest signinRequest = new Gson().fromJson(signin, SigninRequest.class);
         if (signinRequest == null || signinRequest.getUsername() == null)
             return new ResponseData("{}", StatusCode.BAD_REQUEST);
+        JSONObject obj = new JSONObject(signin);
         AccountData accountData = (AccountData) AuthService.DATABASE.getTable(AccountData.class).query().addParameter("username", signinRequest.getUsername()).executeOne();
         if (accountData == null)
             return new ResponseData("{\"message\": \"Username of password do not match.\"}", StatusCode.UNAUTHORIZED);
@@ -131,42 +130,46 @@ public class AuthorizationController {
 
         signinRequests.put(accountData.userId, signinRequest);
         if (authenticationData.getAuthOtpMobileValue() != null && !authenticationData.getAuthOtpMobileValue().equals("")) {
-
             String token = AuthService.JWT_UTILS.generateAuthToken(accountData.userId);
-
-            /*if (signinRequest.getOsType() != null || signinRequest.getOsVersion() != null) {
-                DeviceData deviceData = new DeviceData();
-                osVersion.ifPresent(deviceData::setOsVersion);
-                osType.ifPresent(deviceData::setOsType);
-                deviceData.setAccount(accountRepository.findById(userDetails.getId()).orElse(null));
-                deviceData.setIpv4Address(getIPFromRequest(request));
-                DeviceData device = deviceRepository.save(deviceData);
-                deviceId = device.getId();
-            }*/
-
             status.setOtp(true);
             status.setStatus("wait");
             status.setToken(token);
             status.setMobileConfirm(new Random().nextInt(1000));
             status.setFakeOne(new Random().nextInt(1000));
             status.setFakeTwo(new Random().nextInt(1000));
-            //status.setDeviceId(deviceId);
             status.setId(accountData.userId);
-            /*List<DeviceData> devices = deviceRepository.findByAccount(accountRepository.findById(userDetails.getId()).get());
-            boolean sentCode = false;
-            if (devices.size() > 0) {
-                for (DeviceData deviceData : devices) {
-                    if (deviceData.getDeviceToken() != null && deviceData.getDeviceToken().length() > 0) {
-                        sentCode = true;
-                        PushNotification.trigger2fa(deviceData.getDeviceToken(), token, status.getFakeOne() + "," + status.getMobileConfirm() + "," + status.getFakeTwo());
-                    }
-                }
-            }*/
-            boolean sentCode = false;
+            boolean sentCode = Device.getFromUser(accountData.userId).size() > 0;
+            PushNotification.trigger2fa(accountData.userId, token, status.getFakeOne() + "," + status.getMobileConfirm() + "," + status.getFakeTwo(), !obj.has("live") || !(obj.get("live") instanceof Boolean) || obj.getBoolean("live"));
             permitted.put(token, status);
             return new ResponseData("{\"token\": \"" + token + "\", \"mobile\": \"" + (sentCode ? status.getMobileConfirm() : 0) + "\", \"username\": \"" + accountData.username + "\"}", StatusCode.OK);
         }
         return getTokens(status, signinRequest.getUsername());
+    }
+
+    @RestRequest(method = "POST", path = "/mobile-auth")
+    public static ResponseData authUser(RequestData request, @RequestBody String b) {
+        System.out.println(b);
+        JSONObject body = new JSONObject(b);
+        int confirmCode = body.getInt("confirmCode");
+        String token = body.getString("token");
+        String auth = request.getHeader("authorization");
+        if (auth == null || !auth.contains(" "))
+            return new ResponseData("{}", StatusCode.BAD_REQUEST);
+        auth = auth.split(" ")[1];
+
+        if (!AuthService.VERIFIER.verify(auth).getClaim("mobile").asBoolean())
+            return new ResponseData("{}", StatusCode.BAD_REQUEST);
+        UserDetailsImpl userDetails = (UserDetailsImpl) AuthenticationManager.getAuthentication();
+        AuthStatus status = permitted.get(token);
+        if (userDetails == null || status == null)
+            return new ResponseData("{}", StatusCode.BAD_REQUEST);
+        if (status.getId() != userDetails.getId())
+            return new ResponseData("{}", StatusCode.UNAUTHORIZED);
+        if (status.getMobileConfirm() == confirmCode) {
+            permitted.get(token).setStatus("ok");
+            return new ResponseData("{}", StatusCode.OK);
+        }
+        return new ResponseData("{}", StatusCode.BAD_REQUEST);
     }
 
     @RestRequest(path = "/otp", method = "POST")
@@ -206,11 +209,6 @@ public class AuthorizationController {
             return new ResponseData("{}", StatusCode.OK);
         }
 
-        return new ResponseData("{}", StatusCode.UNAUTHORIZED);
-    }
-
-    @RestRequest(path = "/mobile", method = "POST")
-    public static ResponseData mobile(@RequestBody String mobile) {
         return new ResponseData("{}", StatusCode.UNAUTHORIZED);
     }
 
