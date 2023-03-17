@@ -13,9 +13,11 @@ import com.projectdynasty.payload.response.TokenResponse;
 import com.projectdynasty.security.services.UserDetailsImpl;
 import de.alexanderwodarz.code.log.Level;
 import de.alexanderwodarz.code.log.Log;
+import de.alexanderwodarz.code.web.rest.RequestData;
 import de.alexanderwodarz.code.web.rest.authentication.Authentication;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -83,6 +85,24 @@ public class JwtUtils {
                 .withIssuedAt(new Date()).sign(algorithm);
     }
 
+    public boolean isMobileRequest(RequestData data) {
+        String jwt = AuthTokenFilter.parseJwt(data.getHeader("authorization"));
+        try {
+            return AuthService.VERIFIER.verify(jwt).getClaim("mobile").asBoolean();
+        } catch (TokenExpiredException | SignatureVerificationException e) {
+            return false;
+        }
+    }
+
+    public long getDeviceId(RequestData data) {
+        String jwt = AuthTokenFilter.parseJwt(data.getHeader("authorization"));
+        try {
+            return AuthService.VERIFIER.verify(jwt).getClaim("deviceId").asLong();
+        } catch (TokenExpiredException | SignatureVerificationException e) {
+            return 0L;
+        }
+    }
+
     public String getSubject(String token) {
         try {
             return AuthService.VERIFIER.verify(token).getSubject();
@@ -108,6 +128,17 @@ public class JwtUtils {
             Log.log(e.getMessage(), Level.ERROR);
         }
         return false;
+    }
+
+    public HashMap<String, String> generatePushAuthorizationToken() {
+        Algorithm algorithm = Algorithm.HMAC256(secret);
+        Date expire = new Date((new Date()).getTime() + (1000 * 60));
+        HashMap<String, String> headers = new HashMap<>();
+        String auth = JWT.create().withIssuer(AuthService.CONFIG.get("jwt", AuthService.Jwt.class).getIss())
+                .withExpiresAt(expire)
+                .sign(algorithm);
+        headers.put("Authorization", "Bearer " + auth);
+        return headers;
     }
 
     public boolean validateJwtRefreshToken(String authToken) {
