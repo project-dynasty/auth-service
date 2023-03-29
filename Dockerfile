@@ -11,4 +11,5 @@ FROM adoptopenjdk/openjdk11:jdk-11.0.11_9-alpine
 WORKDIR /app
 COPY --from=build /app/target/auth-service-jar-with-dependencies.jar app.jar
 EXPOSE 6472
+EXPOSE 3345
 ENTRYPOINT ["java", "-jar", "app.jar"]
