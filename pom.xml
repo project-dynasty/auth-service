@@ -28,7 +28,7 @@
         <dependency>
             <groupId>de.alexanderwodarz.code</groupId>
             <artifactId>api-mysql</artifactId>
-            <version>1.7-RELEASE</version>
+            <version>1.7</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
