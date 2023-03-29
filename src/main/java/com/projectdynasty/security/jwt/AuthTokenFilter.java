@@ -22,6 +22,7 @@ public class AuthTokenFilter extends AuthenticationFilter {
         allowed.add("/otp");
         allowed.add("/challenge");
         allowed.add("/password");
+        allowed.add("/refresh");
         if(allowed.contains(request.getPath()))
             return AuthenticationFilterResponse.OK();
         try {
