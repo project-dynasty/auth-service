@@ -7,7 +7,7 @@ COPY src/ /app/src/
 RUN mvn clean package -DskipTests
 
 # Production stage
-FROM adoptopenjdk/openjdk11:jdk-11.0.19_7-alpine
+FROM adoptopenjdk/openjdk11:jdk-11.0.20_8-alpine
 WORKDIR /app
 COPY --from=build /app/target/auth-service-jar-with-dependencies.jar app.jar
 EXPOSE 6472
